@@ -41,10 +41,10 @@ int main(int argc, char *argv[]) {
             for (i = 0; i < MATRIX_SIZE; i++) {
                 for (j = 0; j < MATRIX_SIZE; j++) {
                     scanf(" %d", &matrix[i][j]);
+                    if (matrix[i][j] > 9 || matrix[i][j] < 1) {
+                        perror("Wrong input\n");
+                    }
                 }
-            }
-            if (check_correctInput() < 0) {
-                perror("Wrong input\n");
             }
         } while (check_correctInput() < 0);
     } else {
@@ -54,11 +54,11 @@ int main(int argc, char *argv[]) {
         for (i = 0; i < MATRIX_SIZE; i++) {
             for (j = 0; j < MATRIX_SIZE; j++) {
                 fscanf(pf, "%d%c", &matrix[i][j], &c);
+                if (matrix[i][j] > 9 || matrix[i][j] < 1) {
+                    perror("Wrong input: check file\n");
+                    return -1;
+                }
             }
-        }
-        if (check_correctInput() < 0) {
-            perror("Wrong input: check file\n");
-            return -1;
         }
     }
 
@@ -97,9 +97,9 @@ int main(int argc, char *argv[]) {
     }
 
     if (res == MATRIX_SIZE * 3)
-        printf("Solution is legal\n");
+        printf("solution is legal\n");
     else
-        printf("Solution isn't legal\n");
+        printf("solution is not legal\n");
 
     return 0;
 }
