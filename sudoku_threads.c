@@ -26,7 +26,7 @@ void print_arr(int *arr);
 
 void getMatrixFromTerminal();
 
-int getMatrixFromFile(char *argv[]);
+int getMatrixFromFile(char *file_name);
 
 void init_threads(pthread_t *threads, char **arg);
 
@@ -38,37 +38,36 @@ int calculate_result();
 
 void init_arg_array(char **arg);
 
+void check_matrix(pthread_t *threads);
+
 int matrix[MATRIX_SIZE][MATRIX_SIZE];
 int result[MATRIX_SIZE * 3];
 
 int main(int argc, char *argv[]) {
     pthread_t threads[MATRIX_SIZE * 3];
-    char *arg[MATRIX_SIZE * 3];
-    printf("Args Count: %d", argc);
-    printf("Args Count: %c.", argv);
     if (argc < 2) {
         getMatrixFromTerminal();
     } else {
-        if (!getMatrixFromFile(argv)) {
+        if (!getMatrixFromFile(argv[1])) {
             return -1;
         }
     }
+    check_matrix(threads);
 
+    return 0;
+}
+
+void check_matrix(pthread_t *threads) {
+    char *arg[MATRIX_SIZE * 3];
     init_arg_array(arg);
-
     init_threads(threads, arg);
     create_threads(threads);
-
     free_arg_array(arg);
-
     int result = calculate_result();
-
     if (result == MATRIX_SIZE * 3)
         printf("solution is legal\n");
     else
         printf("solution is not legal\n");
-
-    return 0;
 }
 
 void init_arg_array(char **arg) {
@@ -122,10 +121,10 @@ void init_threads(pthread_t *threads, char **arg) {
     }
 }
 
-int getMatrixFromFile(char **argv) {
+int getMatrixFromFile(char *file_name) {
     // Get matrix from file
     int tmp = 0, i, j;
-    FILE *pf = fopen(argv[1], "r");
+    FILE *pf = fopen(file_name, "r");
     for (i = 0; i < MATRIX_SIZE; i++) {
         for (j = 0; j < MATRIX_SIZE; j++) {
             fscanf(pf, "%d", &tmp);
