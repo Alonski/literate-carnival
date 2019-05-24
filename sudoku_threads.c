@@ -6,19 +6,13 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
+#include "sudoku_threads_shared.h"
 #include "sudoku_threads.h"
-
-void init_threads(pthread_t *threads, char **arg);
-
-void join_threads(pthread_t *threads);
-
-void check_matrix_threads(pthread_t *threads);
 
 int matrix[MATRIX_SIZE][MATRIX_SIZE];
 int result[MATRIX_SIZE * 3];
 
 int main(int argc, char *argv[]) {
-    pthread_t threads[MATRIX_SIZE * 3];
     if (argc < 2) {
         get_matrix_from_terminal();
     } else {
@@ -26,7 +20,7 @@ int main(int argc, char *argv[]) {
             return -1;
         }
     }
-    check_matrix_threads(threads);
+    check_matrix_threads();
 
     return 0;
 }
@@ -69,13 +63,17 @@ int get_matrix_from_file(char *file_name) {
     return 1;
 }
 
-void check_matrix_threads(pthread_t *threads) {
+void check_matrix_threads() {
+    pthread_t threads[MATRIX_SIZE * 3];
     char *arg[MATRIX_SIZE * 3];
+
     init_arg_array(arg);
     init_threads(threads, arg);
-    join_threads(threads);
+    join_threads(threads, MATRIX_SIZE * 3);
     free_arg_array(arg);
+
     int result = calculate_result();
+
     if (result == MATRIX_SIZE * 3)
         printf("solution is legal\n");
     else
@@ -94,26 +92,26 @@ void init_threads(pthread_t *threads, char **arg) {
     int i;
     for (i = 0; i < MATRIX_SIZE * 3; i++) {
         char tmp[2];
-        arg[i] = realloc(arg[i], 6 * sizeof(char));            // initialize the "command" arguments
+        arg[i] = realloc(arg[i], 6 * sizeof(char));            // Initialize the "command" arguments
 
-        if (i < MATRIX_SIZE) {                                    // i between 0 and 9 --> check rows
+        if (i < MATRIX_SIZE) {                                    // If i between 0 and 9 --> check rows
             arg[i] = strcpy(arg[i], ROW);
-        } else if (i >= MATRIX_SIZE && i < MATRIX_SIZE * 2) {    // i between 9 and 18 --> check column
+        } else if (i >= MATRIX_SIZE && i < MATRIX_SIZE * 2) {    // If i between 9 and 18 --> check column
             arg[i] = strcpy(arg[i], COLUMN);
-        } else {                                                // i between 18 and 27 --> check sub matrix
+        } else {                                                // If i between 18 and 27 --> check sub matrix
             arg[i] = strcpy(arg[i], SUB_MATRIX);
         }
 
         arg[i] = strcat(arg[i], " ");
         sprintf(tmp, "%i", i % 9);
         arg[i] = strcat(arg[i], tmp);
-        pthread_create(&threads[i], NULL, check_arr, arg[i]);
+        pthread_create(&threads[i], NULL, validate_section, arg[i]);
     }
 }
 
-void join_threads(pthread_t *threads) {
+void join_threads(pthread_t *threads, int size) {
     int i;
-    for (i = 0; i < MATRIX_SIZE * 3; i++) {
+    for (i = 0; i < size; i++) {
         pthread_join(threads[i], NULL);
     }
 }
@@ -133,17 +131,17 @@ int calculate_result() {
     return res;
 }
 
-void *check_arr(void *arg) {
+void *validate_section(void *arg) {
     /* Thread: expect an argument of type string, which contain a command
      * for example: "row 1" or "sub 3"
     */
     int i;
     int arr[MATRIX_SIZE];
-    int check[MATRIX_SIZE] = {0};
+    int check_arr[MATRIX_SIZE] = {0};
     char *str = (char *) arg;
-    char *type = strtok(str, " ");
+    char *type = strtok(str, " "); // Get the 'name' of the task: row/col/sub
     char *s_num = strtok(NULL, " ");
-    int num = atoi(s_num);
+    int num = atoi(s_num); // Get the num of row/column/sub matrix
     int res = 1;
 
     if (strcmp(type, ROW) == 0) {
@@ -156,13 +154,14 @@ void *check_arr(void *arg) {
         num += MATRIX_SIZE * 2;
     }
 
-    //iterate over the array: every number (value) of arr have a representation at the check array in [number - 1] position
+    // Iterate over the array: every number (value) of arr have a representation at the check_arr array in [number - 1] position
     for (i = 0; i < MATRIX_SIZE; i++) {
-        check[arr[i] - 1]++;
+        check_arr[arr[i] - 1]++;
     }
 
+    // Check the number of occurrences of each number
     for (i = 0; i < MATRIX_SIZE; i++) {
-        if (check[i] == 0 || check[i] > 1) {
+        if (check_arr[i] == 0 || check_arr[i] > 1) {
             res = 0;
             break;
         }
