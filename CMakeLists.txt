@@ -16,11 +16,9 @@ add_executable(literate_carnival
         cmake-build-debug/Project.cbp
         .gitignore
         CMakeLists.txt
-        demo.txt
         LICENSE
         README.md
         sudoku_threads.c
         sudoku_threads_mutex.c
         threads
-        wrong
-        wrong1)
+        sudoku_threads.h)

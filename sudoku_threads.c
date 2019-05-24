@@ -6,37 +6,13 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
-
-#define MATRIX_SIZE 9
-#define ROW "row"
-#define COLUMN "col"
-#define SUB_MATRIX "sub"
-
-void get_row(int *arr, int row);
-
-void get_col(int *arr, int col);
-
-void get_sub_matrix(int *arr, int sub);
-
-int check_correct_input();
-
-void *check_arr(void *arg);
-
-void get_matrix_from_terminal();
-
-int get_matrix_from_file(char *file_name);
+#include "sudoku_threads.h"
 
 void init_threads(pthread_t *threads, char **arg);
 
 void join_threads(pthread_t *threads);
 
-void free_arg_array(char **arg);
-
-int calculate_result();
-
-void init_arg_array(char **arg);
-
-void check_matrix(pthread_t *threads);
+void check_matrix_threads(pthread_t *threads);
 
 int matrix[MATRIX_SIZE][MATRIX_SIZE];
 int result[MATRIX_SIZE * 3];
@@ -50,7 +26,7 @@ int main(int argc, char *argv[]) {
             return -1;
         }
     }
-    check_matrix(threads);
+    check_matrix_threads(threads);
 
     return 0;
 }
@@ -75,20 +51,25 @@ int get_matrix_from_file(char *file_name) {
     // Get matrix from file
     int tmp = 0, i, j;
     FILE *pf = fopen(file_name, "r");
-    for (i = 0; i < MATRIX_SIZE; i++) {
-        for (j = 0; j < MATRIX_SIZE; j++) {
-            fscanf(pf, "%d", &tmp);
-            if (tmp > 9 || tmp < 1) {
-                perror("Wrong input: check file\n");
-                return 0;
+    if (pf != NULL) {
+        for (i = 0; i < MATRIX_SIZE; i++) {
+            for (j = 0; j < MATRIX_SIZE; j++) {
+                fscanf(pf, "%d", &tmp);
+                if (tmp > 9 || tmp < 1) {
+                    perror("Wrong input: check file\n");
+                    return 0;
+                }
+                matrix[i][j] = tmp;
             }
-            matrix[i][j] = tmp;
         }
+    } else {
+        perror("Error: Something wrong with your file\n");
+        return 0;
     }
     return 1;
 }
 
-void check_matrix(pthread_t *threads) {
+void check_matrix_threads(pthread_t *threads) {
     char *arg[MATRIX_SIZE * 3];
     init_arg_array(arg);
     init_threads(threads, arg);
