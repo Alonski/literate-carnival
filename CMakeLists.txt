@@ -21,4 +21,4 @@ add_executable(literate_carnival
         sudoku_threads.c
         sudoku_threads_mutex.c
         threads
-        sudoku_threads.h)
+        sudoku_threads.h sudoku_threads_shared.h sudoku_mutex.h)

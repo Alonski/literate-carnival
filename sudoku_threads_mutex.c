@@ -6,38 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include "sudoku_threads_shared.h"
+#include "sudoku_mutex.h"
 
 #define THREADS_AMOUNT 3
-#define MATRIX_SIZE 9
-#define ROW "row"
-#define COLUMN "col"
-#define SUB_MATRIX "sub"
-
-typedef struct Tasks {
-    char *tasks[MATRIX_SIZE * 3];
-    int taskPointer;
-    int complete;
-} Tasks;
-
-void initTasks(Tasks *tasks);
-
-void freeTasks(Tasks *tasks);
-
-void *checkMatrix(void *arg);
-
-int doTask(char *str);
-
-void get_row(int *arr, int row);
-
-void get_col(int *arr, int col);
-
-void get_sub_matrix(int *arr, int sub);
-
-int check_correct_input();
 
 static int done = 0;
-int result = 0;
 int matrix[MATRIX_SIZE][MATRIX_SIZE];
+int result = 0;
 
 pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t result_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -45,158 +21,83 @@ pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t done_cond = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[]) {
-    int i, j;
-    FILE *pf;
-    Tasks tasks;
-    pthread_t threads[THREADS_AMOUNT];
-
     if (argc < 2) {
-        do {
-            //get matrix from terminal
-            printf("Insert solution:\n");
-            for (i = 0; i < MATRIX_SIZE; i++) {
-                for (j = 0; j < MATRIX_SIZE; j++) {
-                    scanf(" %d", &matrix[i][j]);
-                }
-            }
-            if (check_correct_input() < 0) {
-                printf("Wrong input try again\n");
-            }
-        } while (check_correct_input() < 0);
+        get_matrix_from_terminal();
     } else {
-        //get matrix from file
-        char c;
-        pf = fopen(argv[1], "r");
-        if (pf != NULL) {
-            for (i = 0; i < MATRIX_SIZE; i++) {
-                for (j = 0; j < MATRIX_SIZE; j++) {
-                    fscanf(pf, "%d%c", &matrix[i][j], &c);
-                }
-            }
-        } else {
-            perror("Error: Something wrong with your file\n");
-            return -1;
-        }
-        if (check_correct_input() < 0) {
-            printf("Wrong input: check file\n");
+        if (!get_matrix_from_file(argv[1])) {
             return -1;
         }
     }
-
-    //Initialize an array of tasks
-    initTasks(&tasks);
-
-    //Initialize threads
-    for (i = 0; i < THREADS_AMOUNT; i++) {
-        pthread_create(&threads[i], NULL, checkMatrix, &tasks);
-    }
-
-    //after all threads are done
-    pthread_mutex_lock(&done_mutex);
-    if (!done)                                            //last thread hasn't finish
-        pthread_cond_wait(&done_cond, &done_mutex);        //wait, release lock
-    pthread_mutex_unlock(&done_mutex);
-
-    if (result == MATRIX_SIZE * 3) {
-        printf("Solution is legal\n");
-    } else {
-        printf("Solution isn't legal\n");
-    }
-
-    //Free allocated tasks
-    freeTasks(&tasks);
-
-    for (i = 0; i < THREADS_AMOUNT; i++)
-        pthread_join(threads[i], NULL);
+    check_matrix_mutex();
 
     return 0;
 }
 
-void *checkMatrix(void *arg) {
-    /* Thread function */
-    Tasks *tasks = (Tasks *) arg;
-    char *task;
-    int res, taskPointer;
-
-    while (!done) {
-        pthread_mutex_lock(&read_mutex);                    //acquire lock
-        taskPointer = tasks->taskPointer;
-        tasks->taskPointer++;                                //move pointer to next task
-        pthread_mutex_unlock(&read_mutex);                    //release lock
-
-        if (taskPointer < MATRIX_SIZE * 3) {
-            task = tasks->tasks[taskPointer];                //get task
-            res = doTask(task);                                //get result
-
-            if (res > 0) {                                    //write result in case of correct row/column/sub matrix
-                pthread_mutex_lock(&result_mutex);
-                result++;
-                pthread_mutex_unlock(&result_mutex);
+void get_matrix_from_terminal() {
+    int i, j;
+    do {
+        // Get matrix from terminal
+        printf("Insert solution:\n");
+        for (i = 0; i < MATRIX_SIZE; i++) {
+            for (j = 0; j < MATRIX_SIZE; j++) {
+                scanf(" %d", &matrix[i][j]);
+                if (matrix[i][j] > 9 || matrix[i][j] < 1) {
+                    perror("Wrong input\n");
+                }
             }
-            pthread_mutex_lock(&result_mutex);
-            tasks->complete++;
-            pthread_mutex_unlock(&result_mutex);
         }
-            //Last thread (the one who perform the last task) wake the main thread
-        else {
-            while (tasks->complete != MATRIX_SIZE * 3);        //wait on last thread to complete
-            pthread_mutex_lock(&done_mutex);
-            done = 1;
-            pthread_cond_signal(&done_cond);                //send 'wake' signal
-            pthread_mutex_unlock(&done_mutex);
-        }
-
-    }
-
-    pthread_exit(NULL);
+    } while (check_correct_input() < 0);
 }
 
-int doTask(char *str) {
-    /* Do ONE task: check one row/one column/one sub matrix */
-    int i;
-    int num;
-    int res = 1;
-    char *token = strtok(str, " ");    //get the 'name' of the task: row/col/sub
-    int arr[MATRIX_SIZE];
-    int check_arr[MATRIX_SIZE] = {0};
-
-    if (strcmp(token, ROW) == 0) {
-        num = atoi(&str[4]);            //get the number of row
-        get_row(arr, num);                //get the row itself
-    } else if (strcmp(token, COLUMN) == 0) {
-        num = atoi(&str[4]);            //get the number of column
-        get_col(arr, num);                //get the column itself
-    } else if (strcmp(token, SUB_MATRIX) == 0) {
-        num = atoi(&str[4]);            //get the number of sub matrix
-        get_sub_matrix(arr, num);        //get the sub matrix itself
-    }
-
-    //Make a representation of the occurrences of the number
-    for (i = 0; i < MATRIX_SIZE; i++) {
-        check_arr[arr[i] - 1]++;
-    }
-
-    //Check the number of occurrences of each number
-    for (i = 0; i < MATRIX_SIZE; i++) {
-        if (check_arr[i] > 1 || check_arr[i] < 1) {
-            res = -1;
-            break;
+int get_matrix_from_file(char *file_name) {
+    // Get matrix from file
+    int tmp = 0, i, j;
+    FILE *pf = fopen(file_name, "r");
+    if (pf != NULL) {
+        for (i = 0; i < MATRIX_SIZE; i++) {
+            for (j = 0; j < MATRIX_SIZE; j++) {
+                fscanf(pf, "%d", &tmp);
+                if (tmp > 9 || tmp < 1) {
+                    perror("Wrong input: check file\n");
+                    return 0;
+                }
+                matrix[i][j] = tmp;
+            }
         }
+    } else {
+        perror("Error: Something wrong with your file\n");
+        return 0;
     }
-    return res;
+    return 1;
 }
 
-void initTasks(Tasks *tasks) {
+void check_matrix_mutex() {
+    pthread_t threads[THREADS_AMOUNT];
+    Tasks tasks;
+
+    init_tasks(&tasks);
+    init_threads_mutex(threads, &tasks);
+    join_threads(threads, THREADS_AMOUNT);
+    wait_for_done();
+    free_tasks(&tasks);
+
+    if (result == MATRIX_SIZE * 3)
+        printf("solution is legal\n");
+    else
+        printf("solution is not legal\n");
+}
+
+void init_tasks(Tasks *tasks) {
     /* Initialize an array of tasks e.g: row 0 or sub 3 */
     int i;
     char numAsAscii[MATRIX_SIZE];
 
-    //Initialize strings
+    // Initialize strings
     for (i = 0; i < MATRIX_SIZE * 3; i++) {
         tasks->tasks[i] = malloc(6 * sizeof(char));
     }
 
-    //Write tasks
+    // Write tasks
     for (i = 0; i < MATRIX_SIZE * 3; i++) {
         if (i < MATRIX_SIZE) {
             strcpy(tasks->tasks[i], ROW);
@@ -209,18 +110,113 @@ void initTasks(Tasks *tasks) {
         strcat(tasks->tasks[i], " ");
         strcat(tasks->tasks[i], numAsAscii);
     }
-    //Initialize task pointer
+    // Initialize task pointer
     tasks->taskPointer = 0;
 
-    //Initialize amount of completed threads
+    // Initialize amount of completed threads
     tasks->complete = 0;
 }
 
-void freeTasks(Tasks *tasks) {
+void init_threads_mutex(pthread_t *threads, Tasks *tasks) {
+    // Initialize threads
+    int i;
+    for (i = 0; i < THREADS_AMOUNT; i++) {
+        pthread_create(&threads[i], NULL, check_tasks, tasks);
+    }
+}
+
+void join_threads(pthread_t *threads, int size) {
+    int i;
+    for (i = 0; i < size; i++) {
+        pthread_join(threads[i], NULL);
+    }
+}
+
+void wait_for_done() {
+    // After all threads are done
+    pthread_mutex_lock(&done_mutex);
+    if (!done)                                            // Last thread hasn't finish
+        pthread_cond_wait(&done_cond, &done_mutex);        // Wait, release lock
+    pthread_mutex_unlock(&done_mutex);
+}
+
+void free_tasks(Tasks *tasks) {
+    // Free allocated tasks
     int i;
     for (i = 0; i < MATRIX_SIZE * 3; i++) {
         free(tasks->tasks[i]);
     }
+}
+
+void *check_tasks(void *arg) {
+    /* Thread function */
+    Tasks *tasks = (Tasks *) arg;
+    char *task;
+    int res, taskPointer;
+
+    while (!done) {
+        pthread_mutex_lock(&read_mutex);                    // Acquire lock
+        taskPointer = tasks->taskPointer;
+        tasks->taskPointer++;                                // Move pointer to next task
+        pthread_mutex_unlock(&read_mutex);                    // Release lock
+
+        if (taskPointer < MATRIX_SIZE * 3) {
+            task = tasks->tasks[taskPointer];                // Get task
+            res = do_task(task);                                // Get result
+
+            if (res > 0) {                                    // Write result in case of correct row/column/sub matrix
+                pthread_mutex_lock(&result_mutex);
+                result++;
+                pthread_mutex_unlock(&result_mutex);
+            }
+            pthread_mutex_lock(&result_mutex);
+            tasks->complete++;
+            pthread_mutex_unlock(&result_mutex);
+        }
+            // Last thread (the one who perform the last task) wake the main thread
+        else {
+            while (tasks->complete != MATRIX_SIZE * 3);        // Wait on last thread to complete
+            pthread_mutex_lock(&done_mutex);
+            done = 1;
+            pthread_cond_signal(&done_cond);                // Send 'wake' signal
+            pthread_mutex_unlock(&done_mutex);
+        }
+
+    }
+
+    pthread_exit(NULL);
+}
+
+int do_task(char *str) {
+    /* Do ONE task: check one row/one column/one sub matrix */
+    int i;
+    int arr[MATRIX_SIZE];
+    int check_arr[MATRIX_SIZE] = {0};
+    char *type = strtok(str, " ");    // Get the 'name' of the task: row/col/sub
+    int num = atoi(&str[4]); // Get the num of row/column/sub matrix
+    int res = 1;
+
+    if (strcmp(type, ROW) == 0) {
+        get_row(arr, num);
+    } else if (strcmp(type, COLUMN) == 0) {
+        get_col(arr, num);
+    } else if (strcmp(type, SUB_MATRIX) == 0) {
+        get_sub_matrix(arr, num);
+    }
+
+    // Iterate over the array: every number (value) of arr have a representation at the check_arr array in [number - 1] position
+    for (i = 0; i < MATRIX_SIZE; i++) {
+        check_arr[arr[i] - 1]++;
+    }
+
+    // Check the number of occurrences of each number
+    for (i = 0; i < MATRIX_SIZE; i++) {
+        if (check_arr[i] > 1 || check_arr[i] < 1) {
+            res = -1;
+            break;
+        }
+    }
+    return res;
 }
 
 void get_row(int *arr, int row) {
@@ -276,6 +272,8 @@ void get_sub_matrix(int *arr, int sub) {
             i = 6;
             j = 6;
             break;
+        default:
+            return;
     }
     int k, l, m = 0;
     for (k = i; k < i + 3; k++) {
