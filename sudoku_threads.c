@@ -22,9 +22,9 @@ int check_correct_input();
 
 void *check_arr(void *arg);
 
-void getMatrixFromTerminal();
+void get_matrix_from_terminal();
 
-int getMatrixFromFile(char *file_name);
+int get_matrix_from_file(char *file_name);
 
 void init_threads(pthread_t *threads, char **arg);
 
@@ -44,9 +44,9 @@ int result[MATRIX_SIZE * 3];
 int main(int argc, char *argv[]) {
     pthread_t threads[MATRIX_SIZE * 3];
     if (argc < 2) {
-        getMatrixFromTerminal();
+        get_matrix_from_terminal();
     } else {
-        if (!getMatrixFromFile(argv[1])) {
+        if (!get_matrix_from_file(argv[1])) {
             return -1;
         }
     }
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void getMatrixFromTerminal() {
+void get_matrix_from_terminal() {
     int i, j;
     do {
         // Get matrix from terminal
@@ -71,7 +71,7 @@ void getMatrixFromTerminal() {
     } while (check_correct_input() < 0);
 }
 
-int getMatrixFromFile(char *file_name) {
+int get_matrix_from_file(char *file_name) {
     // Get matrix from file
     int tmp = 0, i, j;
     FILE *pf = fopen(file_name, "r");
