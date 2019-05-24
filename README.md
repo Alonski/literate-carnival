@@ -21,12 +21,12 @@ If a file is not passed as an argument then the matrix can be inputted from the 
 
 An example to run the *Threads* program:
 ```
-./sudoku_threads tests/demo.txt
+./v1 tests/demo.txt
 ```
 The above should print: `solution is legal`
 
 An example to run the *Threads* program:
 ```
-./sudoku_threads_mutex tests/wrong1
+./v2 tests/wrong1
 ```
 The above should print: `solution is not legal`
