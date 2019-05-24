@@ -20,5 +20,4 @@ add_executable(literate_carnival
         README.md
         sudoku_threads.c
         sudoku_threads_mutex.c
-        threads
-        sudoku_threads.h sudoku_threads_shared.h sudoku_mutex.h)
+        headers/sudoku_threads.h headers/sudoku_threads_shared.h headers/sudoku_mutex.h)

@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include "sudoku_threads_shared.h"
-#include "sudoku_mutex.h"
+#include "headers/sudoku_threads_shared.h"
+#include "headers/sudoku_mutex.h"
 
 #define THREADS_AMOUNT 3
 

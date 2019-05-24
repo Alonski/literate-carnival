@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
-#include "sudoku_threads_shared.h"
-#include "sudoku_threads.h"
+#include "headers/sudoku_threads_shared.h"
+#include "headers/sudoku_threads.h"
 
 int matrix[MATRIX_SIZE][MATRIX_SIZE];
 int result[MATRIX_SIZE * 3];
