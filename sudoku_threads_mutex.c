@@ -31,9 +31,9 @@ void get_row(int *arr, int row);
 
 void get_col(int *arr, int col);
 
-void get_subMatrix(int *arr, int sub);
+void get_sub_matrix(int *arr, int sub);
 
-int check_correctInput();
+int check_correct_input();
 
 static int done = 0;
 int result = 0;
@@ -59,10 +59,10 @@ int main(int argc, char *argv[]) {
                     scanf(" %d", &matrix[i][j]);
                 }
             }
-            if (check_correctInput() < 0) {
+            if (check_correct_input() < 0) {
                 printf("Wrong input try again\n");
             }
-        } while (check_correctInput() < 0);
+        } while (check_correct_input() < 0);
     } else {
         //get matrix from file
         char c;
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
             perror("Error: Something wrong with your file\n");
             return -1;
         }
-        if (check_correctInput() < 0) {
+        if (check_correct_input() < 0) {
             printf("Wrong input: check file\n");
             return -1;
         }
@@ -168,7 +168,7 @@ int doTask(char *str) {
         get_col(arr, num);                //get the column itself
     } else if (strcmp(token, SUB_MATRIX) == 0) {
         num = atoi(&str[4]);            //get the number of sub matrix
-        get_subMatrix(arr, num);        //get the sub matrix itself
+        get_sub_matrix(arr, num);        //get the sub matrix itself
     }
 
     //Make a representation of the occurrences of the number
@@ -237,7 +237,7 @@ void get_col(int *arr, int col) {
     }
 }
 
-void get_subMatrix(int *arr, int sub) {
+void get_sub_matrix(int *arr, int sub) {
     int i, j;
     switch (sub) {
         case 0:
@@ -285,7 +285,7 @@ void get_subMatrix(int *arr, int sub) {
     }
 }
 
-int check_correctInput() {
+int check_correct_input() {
     int i, j;
     int res = 1;
     for (i = 0; i < MATRIX_SIZE; i++) {
