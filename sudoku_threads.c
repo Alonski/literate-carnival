@@ -22,8 +22,6 @@ int check_correct_input();
 
 void *check_arr(void *arg);
 
-void print_arr(int *arr);
-
 void getMatrixFromTerminal();
 
 int getMatrixFromFile(char *file_name);
@@ -191,13 +189,6 @@ void *check_arr(void *arg) {
     result[num] = res;
 
     pthread_exit(NULL);
-}
-
-void print_arr(int *arr) {
-    int i;
-    for (i = 0; i < MATRIX_SIZE; i++)
-        printf("%d ", arr[i]);
-    printf("\n");
 }
 
 void get_row(int *arr, int row) {
